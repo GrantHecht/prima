@@ -398,7 +398,7 @@ has_rhobeg = present(rhobeg)
 if (present(honour_x0)) then
     honour_x0_loc = honour_x0
 else
-    honour_x0_loc = (.not. has_rhobeg)
+    honour_x0_loc = .true.
 end if
 
 ! Preprocess the inputs in case some of them are invalid. It does nothing if all inputs are valid.

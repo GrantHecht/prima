@@ -3,6 +3,8 @@
 #ifndef PRIMA_H
 #define PRIMA_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -86,6 +88,11 @@ typedef void (*prima_objcon)(const double x[], double *f, double constr[]);
  * maxfun    : maximum number of function evaluations
  * npt       : number of points in the interpolation set, n+2<=npt<=(n+1)(n+2)/2, recommended: 2*n+1
  * iprint    : verbosity level, see the prima_message enum
+ * honour_x0 : whether to respect the user-defined initial point x0 (boolean)
+ *             The BOBYQA algorithm requires that the distance between x0 and the inactive bounds
+ *             is at least rhobeg. If honour_x0 is true, rhobeg is revised if needed;
+ *             otherwise, x0 is revised if needed.
+ *             See details in bobyqa Fortran documentation.
  * m_nlcon   : number of non-linear constraints (>=0)
  * calcfc    : function to minimize and constraints (see prima_objcon)
  * cstrv     : constraint violation (output)
@@ -104,7 +111,7 @@ typedef void (*prima_objcon)(const double x[], double *f, double constr[]);
 PRIMAC_API
 int prima_bobyqa(const prima_obj calfun, const int n, double x[], double *f,
                  const double xl[], const double xu[],
-                 int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint);
+                 int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint, const bool honour_x0);
 
 PRIMAC_API
 int prima_newuoa(const prima_obj calfun, const int n, double x[], double *f,

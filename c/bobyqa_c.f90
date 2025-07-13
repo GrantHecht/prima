@@ -13,8 +13,8 @@ public :: bobyqa_c
 contains
 
 
-subroutine bobyqa_c(cobj_ptr, n, x, f, xl, xu, nf, rhobeg, rhoend, ftarget, maxfun, npt, iprint, info) bind(C)
-use, intrinsic :: iso_c_binding, only : C_DOUBLE, C_INT, C_FUNPTR
+subroutine bobyqa_c(cobj_ptr, n, x, f, xl, xu, nf, rhobeg, rhoend, ftarget, maxfun, npt, iprint, honour_x0, info) bind(C)
+use, intrinsic :: iso_c_binding, only : C_DOUBLE, C_INT, C_FUNPTR, C_BOOL
 use, non_intrinsic :: cintrf_mod, only : COBJ
 use, non_intrinsic :: consts_mod, only : RP, IK
 use, non_intrinsic :: bobyqa_mod, only : bobyqa
@@ -35,6 +35,7 @@ real(C_DOUBLE), intent(in), value :: ftarget
 integer(C_INT), intent(in), value :: maxfun
 integer(C_INT), intent(in), value :: npt
 integer(C_INT), intent(in), value :: iprint
+logical(C_BOOL), intent(in), value :: honour_x0
 integer(C_INT), intent(out) :: info
 
 ! Local variables
@@ -43,6 +44,7 @@ integer(IK) :: iprint_loc
 integer(IK) :: maxfun_loc
 integer(IK) :: npt_loc
 integer(IK) :: nf_loc
+logical :: honour_x0_loc
 real(RP) :: f_loc
 real(RP) :: rhobeg_loc
 real(RP) :: rhoend_loc
@@ -61,10 +63,11 @@ ftarget_loc = real(ftarget, kind(ftarget))
 maxfun_loc = int(maxfun, kind(maxfun_loc))
 npt_loc = int(npt, kind(npt_loc))
 iprint_loc = int(iprint, kind(iprint_loc))
+honour_x0_loc = logical(honour_x0, kind(honour_x0_loc))
 
 ! Call the Fortran code
 call bobyqa(calfun, x_loc, f_loc, xl=xl_loc, xu=xu_loc, nf=nf_loc, rhobeg=rhobeg_loc, rhoend=rhoend_loc, &
-    & ftarget=ftarget_loc, maxfun=maxfun_loc, npt=npt_loc, iprint=iprint_loc, info=info_loc)
+    & ftarget=ftarget_loc, maxfun=maxfun_loc, npt=npt_loc, iprint=iprint_loc, honour_x0=honour_x0_loc, info=info_loc)
 
 ! Write the outputs
 x = real(x_loc, kind(x))

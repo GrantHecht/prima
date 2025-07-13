@@ -9,7 +9,7 @@ int cobyla_c(const int m_nlcon, const prima_objcon calcfc, const int n, double x
              const double xl[], const double xu[],
              int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int iprint, int *info);
 int bobyqa_c(prima_obj calfun, const int n, double x[], double *f, const double xl[], const double xu[],
-             int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint, int *info);
+             int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint, const bool honour_x0, int *info);
 int newuoa_c(prima_obj calfun, const int n, double x[], double *f,
              int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint, int *info);
 int uobyqa_c(prima_obj calfun, const int n, double x[], double *f,
@@ -34,10 +34,10 @@ int prima_cobyla(const int m_nlcon, const prima_objcon calcfc, const int n, doub
 }
 
 int prima_bobyqa(const prima_obj calfun, const int n, double x[], double *f, const double xl[], const double xu[],
-                 int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint)
+                 int *nf, const double rhobeg, const double rhoend, const double ftarget, const int maxfun, const int npt, const int iprint, const bool honour_x0)
 {
   int info = 0;
-  bobyqa_c(calfun, n, x, f, xl, xu, nf, rhobeg, rhoend, ftarget, maxfun, npt, iprint, &info);
+  bobyqa_c(calfun, n, x, f, xl, xu, nf, rhobeg, rhoend, ftarget, maxfun, npt, iprint, honour_x0, &info);
   return info;
 }
 

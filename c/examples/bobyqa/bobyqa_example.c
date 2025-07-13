@@ -27,7 +27,7 @@ int main(int argc, char * argv[])
   const int maxfun = 200*n;
   const int npt = 2*n+1;
   int nf = 0;
-  const int rc = prima_bobyqa(&fun, n, x, &f, xl, xu, &nf, rhobeg, rhoend, ftarget, maxfun, npt, iprint);
+  const int rc = prima_bobyqa(&fun, n, x, &f, xl, xu, &nf, rhobeg, rhoend, ftarget, maxfun, npt, iprint, false);
   const char *msg = prima_get_rc_string(rc);
   printf("x*={%g, %g} rc=%d msg='%s' evals=%d\n", x[0], x[1], rc, msg, nf);
   return (fabs(x[0]-3)>2e-2 || fabs(x[1]-2)>2e-2);
