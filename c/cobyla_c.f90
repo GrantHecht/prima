@@ -4,10 +4,15 @@ module cobyla_c_mod
 !
 ! Dedicated to the late Professor M. J. D. Powell FRS (1936--2015).
 !--------------------------------------------------------------------------------------------------!
+use, intrinsic :: iso_c_binding, only : C_FUNPTR
 implicit none
 private
 public :: cobyla_c
 
+
+! Thread-local storage for C function pointer (Linux-safe alternative to nested functions)
+type(C_FUNPTR), save :: thread_local_cobjcon_ptr
+!$omp threadprivate(thread_local_cobjcon_ptr)
 
 contains
 
@@ -82,6 +87,9 @@ maxfun_loc = int(maxfun, kind(maxfun_loc))
 iprint_loc = int(iprint, kind(iprint_loc))
 m_nlcon_loc = int(m_nlcon, kind(m_nlcon_loc))
 
+! Store function pointer in thread-local storage
+thread_local_cobjcon_ptr = cobjcon_ptr
+
 ! Call the Fortran code
 call cobyla(calcfc, m_nlcon_loc, x_loc, f_loc, cstrv=cstrv_loc, nlconstr=nlconstr_loc, &
     & Aineq=Aineq_loc, bineq=bineq_loc, Aeq=Aeq_loc, beq=beq_loc, &
@@ -97,12 +105,11 @@ nf = int(nf_loc, kind(nf))
 info = int(info_loc, kind(info))
 nlconstr = real(nlconstr_loc, kind(nlconstr))
 
-contains
+end subroutine cobyla_c
 
 !--------------------------------------------------------------------------------------------------!
-! This subroutine defines `calcfc` using the C function pointer with an internal subroutine.
-! This allows to avoid passing the C function pointer by a module variable, which is thread-unsafe.
-! A possible security downside is that the compiler must allow for an executable stack.
+! Thread-safe callback function using thread-local storage instead of nested functions.
+! This avoids the executable stack requirement and works correctly with Julia's threading model.
 !--------------------------------------------------------------------------------------------------!
 subroutine calcfc(x_sub, f_sub, constr_sub)
 use, non_intrinsic :: consts_mod, only : RP
@@ -111,10 +118,8 @@ implicit none
 real(RP), intent(in) :: x_sub(:)
 real(RP), intent(out) :: f_sub
 real(RP), intent(out) :: constr_sub(:)
-call evalcobjcon(cobjcon_ptr, x_sub, f_sub, constr_sub)
+call evalcobjcon(thread_local_cobjcon_ptr, x_sub, f_sub, constr_sub)
 end subroutine calcfc
-
-end subroutine cobyla_c
 
 
 end module cobyla_c_mod

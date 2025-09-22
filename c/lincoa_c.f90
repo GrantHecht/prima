@@ -4,11 +4,15 @@ module lincoa_c_mod
 !
 ! Dedicated to the late Professor M. J. D. Powell FRS (1936--2015).
 !--------------------------------------------------------------------------------------------------!
-
+use, intrinsic :: iso_c_binding, only : C_FUNPTR
 implicit none
 private
 public :: lincoa_c
 
+
+! Thread-local storage for C function pointer (Linux-safe alternative to nested functions)
+type(C_FUNPTR), save :: thread_local_cobj_ptr
+!$omp threadprivate(thread_local_cobj_ptr)
 
 contains
 
@@ -81,6 +85,9 @@ maxfun_loc = int(maxfun, kind(maxfun_loc))
 npt_loc = int(npt, kind(npt_loc))
 iprint_loc = int(iprint, kind(iprint_loc))
 
+! Store function pointer in thread-local storage
+thread_local_cobj_ptr = cobj_ptr
+
 ! Call the Fortran code
 call lincoa(calfun, x_loc, f_loc, cstrv=cstrv_loc, &
     & Aineq=Aineq_loc, bineq=bineq_loc, Aeq=Aeq_loc, beq=beq_loc, &
@@ -95,12 +102,11 @@ cstrv = real(cstrv_loc, kind(cstrv))
 nf = int(nf_loc, kind(nf))
 info = int(info_loc, kind(info))
 
-contains
+end subroutine lincoa_c
 
 !--------------------------------------------------------------------------------------------------!
-! This subroutine defines `calfun` using the C function pointer with an internal subroutine.
-! This allows to avoid passing the C function pointer by a module variable, which is thread-unsafe.
-! A possible security downside is that the compiler must allow for an executable stack.
+! Thread-safe callback function using thread-local storage instead of nested functions.
+! This avoids the executable stack requirement and works correctly with Julia's threading model.
 !--------------------------------------------------------------------------------------------------!
 subroutine calfun(x_sub, f_sub)
 use, non_intrinsic :: consts_mod, only : RP
@@ -108,10 +114,8 @@ use, non_intrinsic :: cintrf_mod, only : evalcobj
 implicit none
 real(RP), intent(in) :: x_sub(:)
 real(RP), intent(out) :: f_sub
-call evalcobj(cobj_ptr, x_sub, f_sub)
+call evalcobj(thread_local_cobj_ptr, x_sub, f_sub)
 end subroutine calfun
-
-end subroutine lincoa_c
 
 
 end module lincoa_c_mod

@@ -4,11 +4,15 @@ module bobyqa_c_mod
 !
 ! Dedicated to the late Professor M. J. D. Powell FRS (1936--2015).
 !--------------------------------------------------------------------------------------------------!
-
+use, intrinsic :: iso_c_binding, only : C_FUNPTR
 implicit none
 private
 public :: bobyqa_c
 
+
+! Thread-local storage for C function pointer (Linux-safe alternative to nested functions)
+type(C_FUNPTR), save :: thread_local_cobj_ptr
+!$omp threadprivate(thread_local_cobj_ptr)
 
 contains
 
@@ -65,6 +69,9 @@ npt_loc = int(npt, kind(npt_loc))
 iprint_loc = int(iprint, kind(iprint_loc))
 honour_x0_loc = logical(honour_x0, kind(honour_x0_loc))
 
+! Store function pointer in thread-local storage
+thread_local_cobj_ptr = cobj_ptr
+
 ! Call the Fortran code
 call bobyqa(calfun, x_loc, f_loc, xl=xl_loc, xu=xu_loc, nf=nf_loc, rhobeg=rhobeg_loc, rhoend=rhoend_loc, &
     & ftarget=ftarget_loc, maxfun=maxfun_loc, npt=npt_loc, iprint=iprint_loc, honour_x0=honour_x0_loc, info=info_loc)
@@ -75,12 +82,11 @@ f = real(f_loc, kind(f))
 nf = int(nf_loc, kind(nf))
 info = int(info_loc, kind(info))
 
-contains
+end subroutine bobyqa_c
 
 !--------------------------------------------------------------------------------------------------!
-! This subroutine defines `calfun` using the C function pointer with an internal subroutine.
-! This allows to avoid passing the C function pointer by a module variable, which is thread-unsafe.
-! A possible security downside is that the compiler must allow for an executable stack.
+! Thread-safe callback function using thread-local storage instead of nested functions.
+! This avoids the executable stack requirement and works correctly with Julia's threading model.
 !--------------------------------------------------------------------------------------------------!
 subroutine calfun(x_sub, f_sub)
 use, non_intrinsic :: consts_mod, only : RP
@@ -88,10 +94,8 @@ use, non_intrinsic :: cintrf_mod, only : evalcobj
 implicit none
 real(RP), intent(in) :: x_sub(:)
 real(RP), intent(out) :: f_sub
-call evalcobj(cobj_ptr, x_sub, f_sub)
+call evalcobj(thread_local_cobj_ptr, x_sub, f_sub)
 end subroutine calfun
-
-end subroutine bobyqa_c
 
 
 end module bobyqa_c_mod
