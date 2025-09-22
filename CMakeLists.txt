@@ -8,17 +8,30 @@ option (BUILD_SHARED_LIBS "shared/static" ON)
 
 include (GNUInstallDirs)
 
-# the compiler enables an executable stack because of nested functions and this is fine
-if (CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-  include (CheckLinkerFlag)
-  check_linker_flag (Fortran "-Wl,--no-warn-execstack" HAVE_WARN_EXECSTACK)
+# Handle executable stack requirements for nested functions used in thread-safe C interface
+if (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  # Always ensure recursive support for thread safety
+  set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -frecursive")
+  
+  # On Linux, explicitly enable executable stack for nested functions to prevent StackOverflowError in multithreaded contexts
+  if (UNIX AND NOT APPLE)  # Linux systems
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,execstack")
+    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,execstack")
+    message(STATUS "Enabling executable stack for Linux to support nested functions in multithreaded contexts")
+  endif()
+  
+  # Check for execstack warning suppression (for other platforms)
+  if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+    include (CheckLinkerFlag)
+    check_linker_flag (Fortran "-Wl,--no-warn-execstack" HAVE_WARN_EXECSTACK)
+  endif ()
 endif ()
 
 # allocate arrays on the heap instead of the stack, slower but can avoid memory errors on large problems
 option (PRIMA_HEAP_ARRAYS "allocate arrays on heap" ON)
 if (PRIMA_HEAP_ARRAYS)
   if (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-stack-arrays -frecursive -fPIC")
+    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-stack-arrays -fPIC")
   elseif (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     if (WIN32)
       set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} /heap-arrays")
